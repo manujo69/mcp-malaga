@@ -1,6 +1,6 @@
 # mcp-malaga
 
-Búsqueda de lugares en Málaga con lenguaje natural. El usuario escribe una pregunta en el chat y el sistema consulta ~27 000 POIs de Foursquare Open Source Places almacenados en Parquet.
+Búsqueda de establecimientos de hostelería en Málaga con lenguaje natural: restaurantes, bares, tapas, cafeterías, heladerías y más. El usuario escribe una pregunta en el chat y el sistema combina datos de Foursquare (~27 000 POIs) con resultados en tiempo real de OpenStreetMap.
 
 ## Stack
 
