@@ -24,6 +24,7 @@ export const CATEGORY_MAP: Record<string, CategoryFilter> = {
   kebab:              { mode: 'exact', pattern: 'Dining and Drinking > Restaurant > Kebab Restaurant' },
   turca:              { mode: 'exact', pattern: 'Dining and Drinking > Restaurant > Turkish Restaurant' },
   americana:          { mode: 'exact', pattern: 'Dining and Drinking > Restaurant > American Restaurant' },
+  campero:            { mode: 'like',  pattern: '%> Campero%' },
   india:              { mode: 'exact', pattern: 'Dining and Drinking > Restaurant > Indian Restaurant' },
   francesa:           { mode: 'exact', pattern: 'Dining and Drinking > Restaurant > French Restaurant' },
 
@@ -84,7 +85,7 @@ export interface Place {
 
 const DEDUP_THRESHOLD_M = 3;
 
-function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
+export function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6_371_000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -94,7 +95,7 @@ function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): num
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function escapeSql(s: string): string {
+export function escapeSql(s: string): string {
   return s.replace(/'/g, "''");
 }
 

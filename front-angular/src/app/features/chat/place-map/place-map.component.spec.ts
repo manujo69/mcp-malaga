@@ -84,6 +84,13 @@ describe('PlaceMapComponent', () => {
     expect(emitted).toEqual([null]);
   });
 
+  it('destroys without errors', () => {
+    const fixture = TestBed.createComponent(PlaceMapComponent);
+    fixture.componentRef.setInput('places', []);
+    fixture.detectChanges();
+    expect(() => fixture.destroy()).not.toThrow();
+  });
+
   it('onMarkerClick selects a different place when one is already selected', () => {
     const fixture = TestBed.createComponent(PlaceMapComponent);
     fixture.componentRef.setInput('places', [mockPlace, anotherPlace]);

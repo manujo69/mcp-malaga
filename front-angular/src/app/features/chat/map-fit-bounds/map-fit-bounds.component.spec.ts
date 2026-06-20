@@ -72,6 +72,13 @@ describe('MapFitBoundsComponent', () => {
     );
   });
 
+  it('destroys without errors', () => {
+    const fixture = TestBed.createComponent(MapFitBoundsComponent);
+    fixture.componentRef.setInput('places', []);
+    fixture.detectChanges();
+    expect(() => fixture.destroy()).not.toThrow();
+  });
+
   it('calls fitBounds again when places input changes', () => {
     mapService.mapInstance = {};
     const fixture = TestBed.createComponent(MapFitBoundsComponent);

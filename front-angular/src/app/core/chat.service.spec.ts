@@ -47,4 +47,14 @@ describe('ChatService', () => {
 
     await expectAsync(promise).toBeRejectedWithError('Server exploded');
   });
+
+  it('propagates HTTP-level errors (4xx / 5xx)', async () => {
+    const promise = service.send('algo');
+    httpMock.expectOne('http://localhost:3000/chat').flush('Internal Server Error', {
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+
+    await expectAsync(promise).toBeRejected();
+  });
 });

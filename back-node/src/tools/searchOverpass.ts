@@ -20,6 +20,7 @@ const OVERPASS_FILTER: Record<string, string> = {
   turca:               `["amenity"="restaurant"]["cuisine"~"kebab|turkish",i]`,
   americana:           `["amenity"="restaurant"]["cuisine"~"american|burger|diner",i]`,
   hamburguesa:         `["amenity"="restaurant"]["cuisine"~"burger",i]`,
+  campero:             `["amenity"="restaurant"]["cuisine"~"campero",i]`,
   india:               `["amenity"="restaurant"]["cuisine"~"indian|curry",i]`,
   francesa:            `["amenity"="restaurant"]["cuisine"~"crepe|bistro",i]`,
   vegetariana:         `["amenity"="restaurant"]["diet:vegetarian"="only"]`,
@@ -30,7 +31,7 @@ const OVERPASS_FILTER: Record<string, string> = {
   restaurante:         `["amenity"="restaurant"]`,
 };
 
-interface OsmNode {
+export interface OsmNode {
   type: 'node';
   id: number;
   lat: number;
@@ -38,23 +39,23 @@ interface OsmNode {
   tags: Record<string, string>;
 }
 
-interface OsmWay {
+export interface OsmWay {
   type: 'way';
   id: number;
   center: { lat: number; lon: number };
   tags: Record<string, string>;
 }
 
-type OsmElement = OsmNode | OsmWay;
+export type OsmElement = OsmNode | OsmWay;
 
-function buildAddress(tags: Record<string, string>): string | null {
+export function buildAddress(tags: Record<string, string>): string | null {
   const street = tags['addr:street'] ?? tags['addr:place'];
   const number = tags['addr:housenumber'];
   if (street && number) return `${street} ${number}`;
   return street ?? null;
 }
 
-function buildCategories(tags: Record<string, string>): string[] {
+export function buildCategories(tags: Record<string, string>): string[] {
   const amenity = tags.amenity ?? '';
   const cuisine = (tags.cuisine ?? '').toLowerCase();
   if (cuisine.includes('tapas') || cuisine.includes('spanish')) return ['Tapas Restaurant'];
@@ -63,7 +64,7 @@ function buildCategories(tags: Record<string, string>): string[] {
   return ['Restaurant'];
 }
 
-function osmToPlace(
+export function osmToPlace(
   e: OsmElement,
   categoria: string,
   centerLat?: number,
