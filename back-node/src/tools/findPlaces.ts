@@ -48,6 +48,7 @@ export interface FindPlacesArgs {
   categoria: string;
   cerca_de?: CercaDe;
   limite?: number;
+  radio_metros?: number;
 }
 
 async function geocodeAddress(address: string): Promise<{ lat: number; lon: number }> {
@@ -100,7 +101,7 @@ export function escapeSql(s: string): string {
 }
 
 export async function findPlaces(args: FindPlacesArgs): Promise<Place[]> {
-  const { categoria, cerca_de, limite = 200 } = args;
+  const { categoria, cerca_de, limite = 200, radio_metros } = args;
   const filter = CATEGORY_MAP[categoria];
   if (!filter) throw new Error(`Categoría desconocida: ${categoria}`);
 
@@ -131,6 +132,10 @@ export async function findPlaces(args: FindPlacesArgs): Promise<Place[]> {
     orderClause = 'ORDER BY name ASC';
   }
 
+  const effectiveRadiusM = radio_metros ?? 2000;
+  const effectiveRadiusKm = effectiveRadiusM / 1000;
+  const radioClause = coords ? `AND ${distanceExpr} <= ${effectiveRadiusKm}` : '';
+
   const sql = `
     SELECT
       fsq_place_id             AS id,
@@ -145,6 +150,7 @@ export async function findPlaces(args: FindPlacesArgs): Promise<Place[]> {
     FROM read_parquet('${parquet}')
     WHERE ${categoryClause}
       AND date_closed IS NULL
+      ${radioClause}
     ${orderClause}
     LIMIT ${limite}
   `;
@@ -195,8 +201,7 @@ export async function findPlaces(args: FindPlacesArgs): Promise<Place[]> {
     conn.closeSync();
   }
 
-  const maxDistKm = fsqPlaces.reduce((max, p) => Math.max(max, p.dist_km ?? 0), 0);
-  const radiusM = Math.max(2000, (maxDistKm + 0.5) * 1000);
+  const radiusM = effectiveRadiusM;
 
   let osmPlaces: Place[] = [];
   try {

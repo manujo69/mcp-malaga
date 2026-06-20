@@ -13,6 +13,11 @@ Usa siempre la herramienta find_places para responder preguntas sobre dónde ir.
 Cuando el usuario no especifique una ubicación, usa el centro de Málaga (lat: 36.7213, lon: -4.4214).
 Responde siempre en español.
 
+RADIO DE BÚSQUEDA (radio_metros):
+- Si el usuario menciona una distancia, pásala en metros como radio_metros.
+  Ejemplos: "100 metros" → 100, "500 metros" → 500, "1 km" → 1000, "2 km" → 2000.
+- Si no menciona distancia, omite radio_metros (el sistema usa 2000 m por defecto).
+
 FORMATO DE RESPUESTA (obligatorio, sin excepciones):
 - Una sola frase de cierre: destaca algo útil (zonas, locales con web/teléfono, variedad, etc.).
 - NUNCA listes los lugares: la interfaz ya los muestra al usuario con nombre, dirección y distancia.
@@ -50,6 +55,12 @@ const FIND_PLACES_TOOL: Anthropic.Messages.Tool = {
         minimum: 1,
         maximum: 50,
         description: 'Número máximo de resultados (por defecto 10)',
+      },
+      radio_metros: {
+        type: 'number',
+        description:
+          'Radio de búsqueda en METROS alrededor de cerca_de (default 2000). ' +
+          'Usa el número exacto que diga el usuario: "100 metros"→100, "500 metros"→500, "1 km"→1000, "2 km"→2000.',
       },
     },
     required: ['categoria'],

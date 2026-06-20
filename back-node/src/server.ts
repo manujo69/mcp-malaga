@@ -45,10 +45,15 @@ export function createServer(): McpServer {
           .max(50)
           .default(10)
           .describe('Número máximo de resultados (1-50, default 10)'),
+        radio_metros: z
+          .number()
+          .positive()
+          .default(2000)
+          .describe('Radio de búsqueda en metros alrededor de cerca_de (default 2000). Ej: 100, 500, 1000, 5000'),
       },
     },
-    async ({ categoria, cerca_de, limite }) => {
-      const places = await findPlaces({ categoria, cerca_de, limite });
+    async ({ categoria, cerca_de, limite, radio_metros }) => {
+      const places = await findPlaces({ categoria, cerca_de, limite, radio_metros });
       return {
         content: [{ type: 'text', text: JSON.stringify(places, null, 2) }],
       };

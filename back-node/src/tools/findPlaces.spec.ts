@@ -282,4 +282,54 @@ describe('findPlaces', () => {
     await expect(findPlaces({ categoria: 'bar', cerca_de: { address: 'dirección inexistente' } }))
       .rejects.toThrow('Sin resultados');
   });
+
+  // --- radio_metros ---
+
+  it('includes distance constraint in SQL when radio_metros and cerca_de are provided', async () => {
+    const { db, conn } = makeMockDb([]);
+    vi.mocked(getDb).mockResolvedValue(db as never);
+
+    await findPlaces({ categoria: 'bar', cerca_de: { lat: 36.72, lon: -4.42 }, radio_metros: 500 });
+
+    const sql: string = conn.run.mock.calls[0][0];
+    expect(sql).toMatch(/<=\s*0\.5/);
+  });
+
+  it('does NOT add radius constraint in SQL when radio_metros is provided without cerca_de', async () => {
+    const { db, conn } = makeMockDb([]);
+    vi.mocked(getDb).mockResolvedValue(db as never);
+
+    await findPlaces({ categoria: 'bar', radio_metros: 500 });
+
+    const sql: string = conn.run.mock.calls[0][0];
+    expect(sql).not.toMatch(/<=\s*0\.5/);
+  });
+
+  it('calls searchOverpass with radio_metros directly when radio_metros is provided', async () => {
+    const { db } = makeMockDb([]);
+    vi.mocked(getDb).mockResolvedValue(db as never);
+
+    await findPlaces({ categoria: 'bar', cerca_de: { lat: 36.72, lon: -4.42 }, radio_metros: 1500 });
+
+    expect(searchOverpass).toHaveBeenCalledWith('bar', { lat: 36.72, lon: -4.42 }, 1500);
+  });
+
+  it('applies 2 km default radius in SQL when cerca_de is provided without radio_metros', async () => {
+    const { db, conn } = makeMockDb([]);
+    vi.mocked(getDb).mockResolvedValue(db as never);
+
+    await findPlaces({ categoria: 'bar', cerca_de: { lat: 36.72, lon: -4.42 } });
+
+    const sql: string = conn.run.mock.calls[0][0];
+    expect(sql).toMatch(/<=\s*2\b/);
+  });
+
+  it('calls searchOverpass with 2000 m by default when cerca_de is provided without radio_metros', async () => {
+    const { db } = makeMockDb([]);
+    vi.mocked(getDb).mockResolvedValue(db as never);
+
+    await findPlaces({ categoria: 'bar', cerca_de: { lat: 36.72, lon: -4.42 } });
+
+    expect(searchOverpass).toHaveBeenCalledWith('bar', { lat: 36.72, lon: -4.42 }, 2000);
+  });
 });
