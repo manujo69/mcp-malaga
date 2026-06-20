@@ -1,5 +1,5 @@
 import { filterVisiblePlaces, metersPerPixel } from './map-visibility';
-import type { Place } from '../chat.service';
+import type { Place } from '../../../domain/place.model';
 
 function place(id: string, lat: number, lon: number, dist_km = 0): Place {
   return {

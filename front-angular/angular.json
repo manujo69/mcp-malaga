@@ -114,6 +114,12 @@
             ],
             "styles": [
               "src/styles.css"
+            ],
+            "codeCoverage": true,
+            "codeCoverageExclude": [
+              "src/main.ts",
+              "src/app/app.config.ts",
+              "src/environments/**"
             ]
           }
         }
