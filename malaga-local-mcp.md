@@ -1,83 +1,88 @@
 # Málaga Local MCP
 
-> Servidor MCP (Node.js) que envuelve APIs de la vida local de Málaga y permite preguntar en lenguaje natural. Claude entiende la pregunta, orquesta las tools y redacta la respuesta. Frontend en Angular.
+> Servidor MCP (Node.js) que expone datos de hostelería de Málaga y permite preguntar en lenguaje natural. Claude entiende la pregunta, orquesta las tools y redacta la respuesta. Frontend en Angular con mapa interactivo.
 >
-> *Nombre provisional. Proyecto de portfolio / demo.*
+> *Proyecto de portfolio / demo.*
 
 ---
 
 ## 1. Qué es
 
-Un asistente conversacional sobre Málaga capital. El usuario pregunta cosas como *"¿me da tiempo a ir al Museo Picasso y encontrarlo abierto si salgo ahora?"* o *"¿dónde tomo unas tapas baratas cerca esta tarde?"*, y el sistema responde combinando datos de transporte, lugares, horarios y contexto.
+Un asistente conversacional para encontrar establecimientos de hostelería en Málaga capital: restaurantes, bares, tapas, cafeterías, heladerías, panaderías y cocinas de todo tipo. El usuario escribe algo como *"¿dónde tomo unas tapas cerca del Mercado Central?"* y el sistema responde combinando dos fuentes de datos en tiempo real.
 
-La idea central: **el modelo no programa la comprensión del lenguaje; eso lo aporta Claude.** El trabajo de ingeniería es exponer un conjunto de *tools* deterministas bien descritas, y dejar que Claude decida cuáles llamar, en qué orden, y cómo redactar el resultado.
+La idea central: **el modelo no programa la comprensión del lenguaje; eso lo aporta Claude.** El trabajo de ingeniería es exponer *tools* deterministas bien descritas, y dejar que Claude decida cuáles llamar y cómo redactar el resultado.
 
-## 2. Arquitectura y principios
+## 2. Arquitectura
 
 ```
-Angular SPA  ──►  API de Anthropic  ──►  Servidor MCP (Node.js)  ──►  APIs / datos de Málaga
- (geo + hora)      (orquesta tools)        (tools deterministas)
+Angular SPA  ──►  POST /chat  ──►  Anthropic API (claude-sonnet-4-6)
+ (chat UI +                          │
+  mapa MapLibre)          tool_use find_places()
+                                     │
+                          ┌──────────┴──────────┐
+                          │                     │
+                    DuckDB + Parquet       Overpass API
+                  (Foursquare ~27k POIs)   (OSM en vivo)
+                          │                     │
+                          └──── merge + dedup ──┘
+                                     │
+                          respuesta en texto + GeoJSON
 ```
 
-Principios acordados:
+El backend también expone un servidor MCP HTTP (`/mcp`) que permite usar las mismas tools desde Claude Desktop o Claude Code.
 
-- **Claude orquesta; las tools no piensan.** Cada tool hace una cosa y es determinista. No se le pide al LLM calcular rutas ni contar registros.
-- **Angular aporta contexto único:** geolocalización del navegador (Geolocation API) y hora actual. Eso resuelve el *"desde casa / ahora mismo"* que un cliente MCP de escritorio no tiene fácil.
-- **MCP remoto, no stdio.** Para que la SPA desplegada use las tools, el servidor MCP debe ser alcanzable por HTTPS (transporte Streamable HTTP), no el stdio de escritorio.
-- **Composición > consulta simple.** El valor aparece cuando una pregunta encadena varias tools (ver §9). Las consultas de un solo dato ya las hace una SPA normal.
+Principios:
+
+- **Claude orquesta; las tools no piensan.** Cada tool hace una cosa y es determinista.
+- **Dos fuentes, un resultado.** Foursquare cubre la mayoría de establecimientos; Overpass aporta datos OSM actualizados. Se combinan y se eliminan duplicados por proximidad (< 3 m haversine). OSM tiene prioridad.
+- **MCP remoto, no stdio.** El servidor usa transporte Streamable HTTP para ser alcanzable desde la SPA desplegada.
 
 ## 3. Stack tecnológico
 
 | Capa | Tecnología |
 |------|-----------|
-| Frontend | Angular |
-| Servidor MCP | Node.js + `@modelcontextprotocol/sdk` (TypeScript) |
-| ETL de datos | DuckDB (lectura de Parquet + filtrado) |
-| Store en runtime | SQLite / en memoria (slice pequeño) |
-| Orquestación LLM | API de Anthropic |
+| Frontend | Angular 20, standalone components, signals, Bootstrap 5, MapLibre GL |
+| Servidor | Node 22 + TypeScript (type stripping nativo, sin build step), Express |
+| LLM | Anthropic SDK, `claude-sonnet-4-6` |
+| Protocolo | `@modelcontextprotocol/sdk` (Streamable HTTP) |
+| Datos estáticos | DuckDB + Parquet (`malaga_places.parquet`) |
+| Datos en vivo | Overpass API (OpenStreetMap) |
+| Geocoding | Nominatim (OpenStreetMap) |
 
-## 4. Fuentes de datos y pool de APIs
+## 4. Fuentes de datos
 
-| Capacidad | Fuente | Tipo | Coste | Estado |
-|-----------|--------|------|-------|--------|
-| Hora actual | `get_current_time` (Node) | Local | — | Trivial |
-| Festivos | Nager.Date | API en vivo | Gratis | Pendiente |
-| Geocoding | Nominatim (OSM) | API en vivo | Gratis | Pendiente |
-| Transporte EMT | API pública EMT Málaga (tiempo real) | API en vivo | Gratis | Pendiente |
-| Cálculo de rutas | OpenTripPlanner + GTFS Málaga (vía Transitland) | Self-hosted | Gratis | Fase 2 |
-| Sitios (bares, heladerías…) | Foursquare OS Places | Dataset estático → store local | Gratis | **Datos listos** |
-| Horarios de locales | OSM / Overpass | API en vivo | Gratis | Pendiente |
-| Meteo | Open-Meteo / AEMET | API en vivo | Gratis | Fase 2 |
-| Datos abiertos Málaga | Tráfico, parking, agenda | API/ficheros | Gratis | Opcional |
+| Fuente | Uso | Coste | Estado |
+|--------|-----|-------|--------|
+| Foursquare OS Places (Parquet) | Base de ~27k POIs hostelería Málaga | Gratis (Apache 2.0) | Implementado |
+| Overpass API (OSM) | Enriquecimiento y horarios en vivo | Gratis | Implementado |
+| Nominatim (OSM) | Geocodificación de direcciones | Gratis | Implementado |
 
 **Decisiones de producto:**
 - Solo fuentes gratuitas (Google Places descartado por coste).
-- Scraping de RestaurantGuru rechazado: `robots.txt` bloquea bots, es re-agregador de Google, derecho *sui generis* de bases de datos (UE, Dir. 96/9/CE) y fragilidad técnica.
-
-**Hueco asumido conscientemente:** ninguna fuente libre da *valoraciones* ni *precio* fiables, y Foursquare **no trae horarios**. Los horarios se resuelven con OSM/Overpass; el matiz cualitativo lo aporta Claude desde su conocimiento (marcado como no-tiempo-real, sin inventar precios).
+- Scraping de RestaurantGuru rechazado: `robots.txt` bloquea bots, derecho *sui generis* de BBDD (Dir. UE 96/9/CE) y fragilidad técnica.
+- **Sin valoraciones ni precio:** ninguna fuente libre los da de forma fiable. Claude puede comentar su conocimiento general marcándolo como no-tiempo-real.
 
 ## 5. Pipeline de datos de Foursquare OS Places
 
-Foursquare deprecó su bucket S3 público. Acceso actual: Places Portal (token), Snowflake o Hugging Face (gated). El *gating* de HF es solo un checkbox de aceptación de términos (datos de contacto), no una cola de aprobación. El dato sigue siendo gratuito bajo **Apache 2.0** con atribución.
+Foursquare deprecó su bucket S3 público. Acceso actual vía Hugging Face (gated, solo aceptación de términos).
 
 ### ETL (una sola vez, en local)
 
 ```bash
-# 1. Aceptar términos en la web del dataset (logueado), una vez:
-#    https://huggingface.co/datasets/foursquare/fsq-os-places  →  "I agree"
+# 1. Aceptar términos en HF (una vez, logueado):
+#    https://huggingface.co/datasets/foursquare/fsq-os-places
 
-# 2. Autenticar el CLI
-hf auth login                      # token de LECTURA
-hf auth whoami
+# 2. Autenticar
+hf auth login   # token de LECTURA
 
-# 3. Descargar la partición vigente (~10 GB; "216 GB" es la suma de todas)
+# 3. Descargar la partición (~10 GB)
 hf download foursquare/fsq-os-places --repo-type dataset \
   --include "release/dt=2026-06-11/places/parquet/*.parquet" \
   --local-dir ./fsq
 ```
 
 ```sql
--- 4. Filtrar al bounding box de Málaga y generar el slice (DuckDB)
+-- 4. Filtrar bbox Málaga y generar el slice
 COPY (
   SELECT fsq_place_id, name, latitude, longitude,
          address, tel, website, fsq_category_labels,
@@ -88,9 +93,7 @@ COPY (
 ) TO 'malaga_places.parquet' (FORMAT PARQUET);
 ```
 
-Tras esto, `./fsq` (los 10 GB) se puede borrar; solo se commitea `malaga_places.parquet` (unos MB). El runtime nunca vuelve a tocar Hugging Face.
-
-> **Notas:** el bbox de Málaga incluye una franja inofensiva de mar/puerto al sur; el filtro por categoría la descarta. DuckDB (columnar, lee Parquet nativo) hace el ETL; SQLite/memoria sirve en runtime. Lectura remota `hf://` posible con *secret* de HF, pero la descarga local resultó más robusta que pelear con LFS/Xet.
+Tras esto, `./fsq` (10 GB) se puede borrar. Solo se commitea `malaga_places.parquet` (pocos MB).
 
 ## 6. Modelo de datos del slice
 
@@ -98,17 +101,15 @@ Tras esto, `./fsq` (los 10 GB) se puede borrar; solo se commitea `malaga_places.
 
 | Columna | Tipo | Nota |
 |---------|------|------|
-| `fsq_place_id` | string | ID estable |
+| `fsq_place_id` | string | ID estable, prefijo `fsq:` en runtime |
 | `name` | string | |
-| `latitude` / `longitude` | double | Filtrado por bbox |
+| `latitude` / `longitude` | double | |
 | `address`, `tel`, `website` | string | Pueden ser NULL |
-| `fsq_category_labels` | string[] | **Rutas jerárquicas** |
-| `date_closed` | date | NULL = abierto |
+| `fsq_category_labels` | string[] | Rutas jerárquicas, ej. `Dining and Drinking > Restaurant > Spanish Restaurant > Tapas Restaurant` |
+| `date_closed` | date | NULL = activo |
 | `date_refreshed` | date | Frescura del registro |
 
-Las categorías son rutas tipo `Dining and Drinking > Restaurant > Spanish Restaurant > Tapas Restaurant`, lo que permite filtrar a cualquier nivel del árbol.
-
-### Cobertura gastronómica en Málaga (top categorías)
+### Cobertura hostelería (top categorías)
 
 | Categoría | Nº |
 |-----------|-----|
@@ -118,81 +119,83 @@ Las categorías son rutas tipo `Dining and Drinking > Restaurant > Spanish Resta
 | Bar | 485 |
 | Coffee Shop | 401 |
 | Bakery | 300 |
-| Breakfast Spot | 265 |
-| Ice Cream Parlor (heladerías) | 195 |
+| Ice Cream Parlor | 195 |
 | Cocktail Bar | 168 |
 | Pub | 160 |
 
 ## 7. Tool `find_places`
 
-Primera tool del MCP. Consulta el slice local.
+Consulta DuckDB y Overpass y devuelve resultados combinados.
 
-**Parámetros**
-- `categoria` *(requerido)* — término semántico; Claude lo mapea a la ruta Foursquare.
-- `cerca_de` *(opcional)* — coordenadas o nombre de lugar (geocodificado con Nominatim) para ordenar/filtrar por distancia.
-- `limite` *(opcional)*.
-- ~~`abierto_a`~~ — **no servible desde Foursquare** (sin horarios); se resolverá con OSM/Overpass en una capa aparte.
+**Parámetros:**
+- `categoria` *(requerido)* — término semántico que Claude mapea al filtro correcto.
+- `cerca_de` *(opcional)* — `{ address: string }` (Claude extrae, Node geocodifica) o `{ lat, lon }`.
+- `limite` *(opcional, default 200)*.
 
-**Mapa categoría coloquial → filtro**
-| Usuario dice | Filtro |
-|--------------|--------|
-| tapas | `…> Tapas Restaurant` |
-| heladería | `…> Ice Cream Parlor` |
-| café | `…> Café` / `Coffee Shop` |
-| bar | `…> Bar` y derivados |
-| restaurante | `…> Restaurant` |
-| panadería | `…> Bakery` |
+**Categorías soportadas:**
 
-**Filtrado en DuckDB**
-```sql
--- Match exacto de una categoría
-WHERE list_contains(fsq_category_labels,
-        'Dining and Drinking > Restaurant > Spanish Restaurant > Tapas Restaurant')
+| Coloquial | Fuente Foursquare | Fuente OSM |
+|-----------|-------------------|------------|
+| tapas | `…> Tapas Restaurant` | `amenity=restaurant + cuisine~tapas` |
+| restaurante_espanol | `…> Spanish Restaurant` | `amenity=restaurant + cuisine~spanish` |
+| mariscos | `…> Seafood Restaurant` | `cuisine~seafood` |
+| mediterranea | `…> Mediterranean Restaurant` | `cuisine~mediterranean` |
+| italiana | `…> Italian Restaurant` | `cuisine~italian` |
+| pizza | `…> Pizzeria` | `cuisine~pizza` |
+| japonesa | `…> Japanese Restaurant` | `cuisine~japanese\|sushi` |
+| china | `…> Chinese Restaurant` | `cuisine~chinese` |
+| mexicana | `…> Mexican Restaurant` | `cuisine~mexican` |
+| argentina | `…> Argentinian Restaurant` | `cuisine~argentinian` |
+| marroqui | `…> Moroccan Restaurant` | `cuisine~moroccan` |
+| kebab | `…> Kebab Restaurant` | `cuisine~kebab` |
+| turca | (kebab) | `cuisine~turkish` |
+| americana | `…> American Restaurant` | `cuisine~american` |
+| hamburguesa | `…> Burger Joint` | `cuisine~burger` |
+| india | `…> Indian Restaurant` | `cuisine~indian` |
+| francesa | `…> French Restaurant` | `cuisine~crepe\|bistro` |
+| vegetariana | `…> Vegan and Vegetarian Restaurant` | `diet:vegetarian=only` |
+| bar | `…> Bar` | `amenity=bar\|pub` |
+| cafe | `…> Café / Coffee Shop` | `amenity=cafe` |
+| heladeria | `…> Ice Cream Parlor` | `amenity=ice_cream` |
+| panaderia | `…> Bakery` | `shop=bakery` |
+| restaurante | `…> Restaurant` (genérico) | `amenity=restaurant` |
 
--- Grupo amplio por patrón
-WHERE len(list_filter(fsq_category_labels, x -> x LIKE '%> Bar%')) > 0
-```
+**Lógica de merge:**
+1. DuckDB filtra el Parquet por categoría y, si hay `cerca_de`, ordena por distancia.
+2. Overpass consulta OSM en el bbox de Málaga o en un radio alrededor de `coords`.
+3. Se eliminan duplicados: si un POI OSM y uno FSQ están a menos de 3 m, se descarta el FSQ. OSM tiene prioridad (datos más frescos y con `opening_hours`).
+4. El resultado combinado se ordena por `dist_km` si hay localización, o por nombre.
 
-**Decisión pendiente:** filtrar por *string de etiqueta* (rápido, para la demo) vs. por `fsq_category_ids` + dataset *Categories* (IDs estables, robusto, v2).
+## 8. Endpoints del servidor
 
-## 8. Tipos de pregunta (de menos a más interesante)
+| Ruta | Método | Descripción |
+|------|--------|-------------|
+| `/chat` | POST | Proxy Anthropic con bucle agéntico. Body: `{ prompt: string }` |
+| `/mcp` | GET / POST / DELETE | Servidor MCP HTTP (sesiones stateful) |
+| `/health` | GET | Estado del servidor |
 
-1. **Consulta directa** — *"¿cuánto falta para el 11 en la Alameda?"* (1 tool).
-2. **Resolución difusa** — *"el bar de la playa desde Teatinos"* (Claude resuelve nombres vagos).
-3. **Composición y razonamiento** — varias tools + síntesis.
-4. **Mezcla con conocimiento del mundo** — meteo, eventos, etc.
-
-**Casos estrella para la demo:**
-- *"¿Me da tiempo a ir al Picasso y encontrarlo abierto si salgo ahora?"* → hora + geocoding + routing + horario + festivo. Cadena de 5-6 tools.
-- *"Tapas baratas esta tarde a partir de las 5"* → `find_places` + capa OSM de horarios.
-
-## 9. Despliegue (gratis, para demo)
-
-- **Frontend Angular** → Vercel o Render estático (sin reposo).
-- **Servidor MCP Node + slice** → Render free web service (sin tarjeta; se duerme a los 15 min, arranque en frío 30-50 s — mitigable con keep-alive) o Northflank (sin sleep).
-- **El Parquet de 10 GB no se aloja en ningún sitio**: el slice de pocos MB viaja dentro del repo.
-
-## 10. Estado actual
+## 9. Estado actual
 
 - [x] Arquitectura y decisiones de producto definidas
 - [x] Pipeline de datos Foursquare resuelto y ejecutado
-- [x] Slice `malaga_places.parquet` generado (27.299 POIs, bbox verificado)
-- [x] Cobertura de categorías validada
-- [x] Diseño de `find_places`
-- [ ] Esqueleto del servidor MCP (Node) ← **siguiente paso**
-- [ ] Tool `find_places` implementada sobre el slice
-- [ ] Tools de transporte / geocoding / festivos
-- [ ] Capa OSM de horarios
-- [ ] Frontend Angular + integración API de Anthropic
-- [ ] Despliegue
+- [x] Slice `malaga_places.parquet` generado (27.299 POIs)
+- [x] Servidor MCP Node.js implementado (Express + MCP SDK)
+- [x] Tool `find_places` con DuckDB + Overpass + deduplicación
+- [x] Geocodificación con Nominatim
+- [x] Frontend Angular 20 con chat y mapa MapLibre
+- [x] Integración con API de Anthropic (`/chat` agéntico)
+- [ ] Capa de horarios OSM integrada en la respuesta de Claude
+- [ ] Despliegue en producción
+- [ ] Tools adicionales (transporte EMT, meteo, festivos)
 
-## 11. Limitaciones conocidas
+## 10. Limitaciones conocidas
 
-- Sin valoraciones ni precio (ninguna fuente libre los da).
-- Horarios solo vía OSM, con cobertura irregular.
+- Sin valoraciones ni precio (ninguna fuente libre los da de forma fiable).
+- Horarios de Foursquare: no disponibles. OSM los tiene cuando el POI es de origen OSM.
 - Frescura de Foursquare: release mensual.
-- El bbox rectangular incluye algo de mar/puerto (inocuo tras filtrar categorías).
+- Overpass puede tardar o fallar bajo carga; el sistema lo gestiona con fallback silencioso a solo FSQ.
+- El bbox rectangular incluye algo de mar/puerto (inocuo tras filtrar por categorías de hostelería).
 
-## 12. Licencia y atribución
+## 11. Licencia y atribución
 
-Datos de **Foursquare Open Source Places**, bajo licencia **Apache 2.0**. Debe conservarse el `NOTICE.txt` de Foursquare al redistribuir el slice. Datos cartográficos y de horarios de **OpenStreetMap** (ODbL) cuando se integren.
+Datos de **Foursquare Open Source Places**, bajo licencia **Apache 2.0**. Debe conservarse el `NOTICE.txt` de Foursquare al redistribuir el slice. Datos cartográficos y de horarios de **OpenStreetMap** (ODbL).
