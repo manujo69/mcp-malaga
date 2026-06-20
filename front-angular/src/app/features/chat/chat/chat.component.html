@@ -1,0 +1,72 @@
+<app-place-map
+  [places]="places()"
+  [selectedPlace]="selectedPlace()"
+  [hoveredPlace]="hoveredPlace()"
+  (placeSelected)="selectedPlace.set($event)"
+  (visiblePlacesChange)="visiblePlaces.set($event)"
+/>
+
+<div class="chat-panel">
+  <h1 class="fs-4 fw-bold mb-1">Málaga Places</h1>
+  <p class="text-muted small mb-3">Pregunta en lenguaje natural dónde ir en Málaga</p>
+
+  <form (ngSubmit)="send()" class="mb-3">
+    <div class="input-group">
+      <input
+        type="text"
+        class="form-control"
+        [ngModel]="prompt()"
+        (ngModelChange)="prompt.set($event)"
+        name="prompt"
+        placeholder="Ej: tapas cerca del centro"
+        [disabled]="status() === 'loading'"
+        autocomplete="off"
+      />
+      <button
+        class="btn btn-primary"
+        type="submit"
+        [disabled]="!prompt().trim() || status() === 'loading'"
+      >
+        @if (status() === 'loading') {
+          <span class="spinner-border spinner-border-sm" role="status"></span>
+        } @else {
+          Buscar
+        }
+      </button>
+    </div>
+  </form>
+
+  @if (status() === 'error') {
+    <div class="alert alert-danger py-2 small">{{ error() }}</div>
+  }
+
+  @if (status() === 'success') {
+    <div class="response-card mb-3">{{ summary() }}</div>
+
+    @if (places().length) {
+      <div class="places-list">
+        <p class="text-muted small fw-semibold mb-2">
+          {{ visiblePlaces().length > 15 ? 15 : visiblePlaces().length }}
+          de {{ places().length }} resultados
+          @if (visiblePlaces().length < places().length) { · zoom in para ver más }
+        </p>
+        @for (place of visiblePlaces().slice(0, 15); track place.id) {
+          <button
+            type="button"
+            class="place-item"
+            [class.place-item--active]="selectedPlace()?.id === place.id"
+            (click)="togglePlace(place)"
+            (mouseenter)="hoveredPlace.set(place)"
+            (mouseleave)="hoveredPlace.set(null)"
+          >
+            <span class="fw-semibold small d-block">{{ place.name }}</span>
+            <span class="text-muted place-item-meta">
+              @if (place.address) { {{ place.address }} }
+              @if (place.dist_km != null) { · {{ place.dist_km }} km }
+            </span>
+          </button>
+        }
+      </div>
+    }
+  }
+</div>

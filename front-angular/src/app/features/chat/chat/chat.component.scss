@@ -1,0 +1,58 @@
+:host { display: block; }
+
+.chat-panel {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  width: 360px;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  border-radius: .5rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, .15);
+  padding: 1rem;
+}
+
+.response-card {
+  white-space: pre-wrap;
+  font-size: .875rem;
+  line-height: 1.6;
+}
+
+.places-list {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+
+.place-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: .375rem;
+  padding: .5rem .75rem;
+  cursor: pointer;
+  transition: background .1s, border-color .1s;
+}
+
+.place-item:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.place-item--active {
+  background: #fff3cd;
+  border-color: #fd7e14;
+}
+
+.place-item-meta {
+  font-size: .78rem;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

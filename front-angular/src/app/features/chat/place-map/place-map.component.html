@@ -1,0 +1,64 @@
+<mgl-map
+  [mapStyle]="MAP_STYLE"
+  [center]="MALAGA_CENTER"
+  [zoom]="[13]"
+  class="map-canvas"
+  (mapLoad)="onMapLoad($event)"
+  (moveEnd)="onViewportChange($event)"
+  (zoomEnd)="onViewportChange($event)"
+>
+  <app-map-fit-bounds [places]="places()" />
+  @for (place of visiblePlaces(); track place.id) {
+    <mgl-marker [lngLat]="[place.longitude, place.latitude]">
+      <div class="marker-container" (click)="onMarkerClick($event, place)">
+        <img
+          class="place-pin"
+          [class.place-pin--hovered]="hoveredPlace()?.id === place.id && selectedPlace()?.id !== place.id"
+          [class.place-pin--active]="selectedPlace()?.id === place.id"
+          [src]="place.categories | categoryIcon"
+          [alt]="place.name"
+          width="36"
+          height="36"
+        />
+        <span
+          class="place-label"
+          [class.place-label--hidden]="selectedPlace()?.id === place.id"
+        >{{ place.name }}</span>
+      </div>
+    </mgl-marker>
+  }
+  @if (selectedPlace(); as place) {
+    <mgl-popup
+      [lngLat]="[place.longitude, place.latitude]"
+      [closeOnClick]="false"
+      [offset]="[0, -45]"
+      (popupClose)="placeSelected.emit(null)"
+    >
+      <div class="place-popup">
+        <strong class="d-block mb-2">{{ place.name }}</strong>
+        @if (place.address) {
+          <p class="popup-row mb-1">
+            <span class="popup-label">Dirección</span>{{ place.address }}
+          </p>
+        }
+        @if (place.opening_hours) {
+          <p class="popup-row mb-1">
+            <span class="popup-label">Horario</span>{{ translateHours(place.opening_hours) }}
+          </p>
+        }
+        @if (place.tel) {
+          <p class="popup-row mb-1">
+            <span class="popup-label">Teléfono</span>
+            <a [href]="'tel:' + place.tel">{{ place.tel }}</a>
+          </p>
+        }
+        @if (place.website) {
+          <p class="popup-row mb-0">
+            <span class="popup-label">Web</span>
+            <a class="popup-url" [href]="place.website" target="_blank" rel="noopener noreferrer">{{ place.website }}</a>
+          </p>
+        }
+      </div>
+    </mgl-popup>
+  }
+</mgl-map>

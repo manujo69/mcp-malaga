@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  body { margin:0; }
+</style>
+</helmet>
+<div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px; background:#eceae4; padding:48px; box-sizing:border-box; font-family:ui-monospace, 'SF Mono', Menlo, monospace;">
+
+  <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="display:block; border-radius:50%;">
+    <defs>
+      <clipPath id="circleClip"><circle cx="256" cy="256" r="256"></circle></clipPath>
+      <g id="sil" fill="#A82A1C" transform="translate(256 256) scale(1.22) translate(-256 -256)">
+        <path d="M186 120 C 190 212 214 256 256 256 C 298 256 322 212 326 120 A 70 13 0 0 0 186 120 Z"></path>
+        <rect x="249" y="252" width="14" height="120" rx="4"></rect>
+        <ellipse cx="256" cy="382" rx="74" ry="16"></ellipse>
+      </g>
+    </defs>
+
+    <g clip-path="url(#circleClip)">
+      <!-- background -->
+      <circle cx="256" cy="256" r="256" fill="#D63B2A"></circle>
+
+      <!-- long shadow -->
+      <sc-if value="{{ showShadow }}" hint-placeholder-val="{{ true }}">
+        {{ shadowUses }}
+      </sc-if>
+
+      <!-- wine glass -->
+      <g transform="translate(256 256) scale(1.22) translate(-256 -256)">
+        <!-- foot -->
+        <ellipse cx="256" cy="382" rx="74" ry="16" fill="#F6F1EE"></ellipse>
+        <!-- stem -->
+        <rect x="249" y="252" width="14" height="120" rx="4" fill="#F6F1EE"></rect>
+        <!-- bowl glass (closed elliptical top for 3D rim) -->
+        <path d="M186 120 C 190 212 214 256 256 256 C 298 256 322 212 326 120 A 70 13 0 0 0 186 120 Z" fill="#ECE6E2"></path>
+        <!-- rim opening -->
+        <ellipse cx="256" cy="120" rx="70" ry="13" fill="#F6F1EE"></ellipse>
+        <ellipse cx="256" cy="121" rx="60" ry="10" fill="#DBD2CD"></ellipse>
+        <!-- wine -->
+        <path d="M196 170 C 202 214 224 256 256 256 C 288 256 310 214 316 170 A 60 9 0 0 1 196 170 Z" fill="#8C1A12"></path>
+        <ellipse cx="256" cy="170" rx="60" ry="9" fill="#9E2117"></ellipse>
+        <!-- glass highlight -->
+        <path d="M206 132 C 209 188 216 226 230 242 C 221 226 217 188 216 134 Z" fill="#FFFFFF" opacity="0.4"></path>
+      </g>
+    </g>
+  </svg>
+
+  <div style="font-size:13px; color:#8a8780; letter-spacing:0.04em;">bar · 512px</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 608, &quot;height&quot;: 640 },
+  &quot;showShadow&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot; }
+}">
+class Component extends DCLogic {
+  renderVals() {
+    const uses = [];
+    for (let k = 1; k <= 280; k++) {
+      uses.push(React.createElement('use', { key: k, href: '#sil', x: k, y: k }));
+    }
+    return {
+      showShadow: this.props.showShadow ?? true,
+      shadowUses: uses,
+    };
+  }
+}
+</script>
+</body>
+</html>

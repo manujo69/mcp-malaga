@@ -1,0 +1,32 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build output
+dist/
+tmp/
+out-tsc/
+bazel-out/
+
+# Environment
+.env
+
+# Angular
+/.angular/cache
+.sass-cache/
+/coverage
+*.js.map
+
+# IDEs
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+# System
+.DS_Store
+Thumbs.db
