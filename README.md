@@ -15,10 +15,15 @@ Búsqueda de lugares en Málaga con lenguaje natural. El usuario escribe una pre
 ## Flujo
 
 ```
-Angular → POST /chat → Claude → tool find_places() → Nominatim → DuckDB → respuesta en texto
+Angular → POST /chat → Claude → tool find_places()
+  ├── Nominatim (geocodifica dirección → lat/lon)
+  ├── DuckDB  → consulta SQL sobre Foursquare Parquet (~27k POIs)
+  └── Overpass API → consulta OSM en tiempo real
+       → merge + deduplicación por distancia (< 3 m)
+  → Claude genera respuesta en texto → Angular muestra resultados en chat + mapa
 ```
 
-Claude extrae categoría y ubicación del prompt, geocodifica con Nominatim (OpenStreetMap) y filtra con SQL sobre el Parquet.
+Claude extrae categoría y ubicación del prompt. El backend lanza en paralelo DuckDB (datos Foursquare) y Overpass (datos OpenStreetMap en vivo), combina ambas fuentes y elimina duplicados por proximidad geográfica.
 
 ## Estructura
 
