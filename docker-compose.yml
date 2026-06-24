@@ -9,9 +9,11 @@ services:
   backend:
     build:
       context: ./back-node
+    env_file:
+      - path: /etc/mcp-malaga/secrets.env
+        required: true
     environment:
-      PORT: "3000"
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      CORS_ORIGIN: ${CORS_ORIGIN:-*}
-      MODEL: ${MODEL:-claude-sonnet-4-6}
+      - PORT=3000
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - MODEL=${MODEL:-claude-sonnet-4-6}
     restart: unless-stopped
