@@ -1,0 +1,19 @@
+services:
+  backend:
+    build:
+      context: ./back-node
+    environment:
+      PORT: "3000"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      MODEL: ${MODEL:-claude-sonnet-4-6}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./front-angular
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

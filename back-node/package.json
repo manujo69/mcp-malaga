@@ -17,6 +17,7 @@
     "@duckdb/node-api": "1.5.4-r.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "cors": "^2.8.6",
+    "express": "^5.0.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

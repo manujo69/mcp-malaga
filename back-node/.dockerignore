@@ -1,0 +1,6 @@
+node_modules
+coverage
+.env
+*.spec.ts
+tsconfig.json
+vitest.config.ts
