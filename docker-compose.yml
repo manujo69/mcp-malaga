@@ -10,7 +10,7 @@ services:
     build:
       context: ./back-node
     env_file:
-      - .env  # <-- Añade esto aquí obligatoriamente
+      - .env.secret
     environment:
       - PORT=3000
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
