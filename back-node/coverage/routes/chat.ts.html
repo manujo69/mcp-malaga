@@ -316,6 +316,10 @@ import type { FindPlacesArgs, Place } from '../tools/findPlaces.ts';
 &nbsp;
 const router = express.Router();
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// LOG TEMPORAL DE SEGURIDAD (Borrar después)
+console.log("¿La API Key está cargada?:", process.env.ANTHROPIC_API_KEY ? "SÍ (Tiene valor)" : "NO (Está vacía)");
 const MODEL = process.env.MODEL ?? 'claude-sonnet-4-6';
 &nbsp;
 const SYSTEM_PROMPT = `Eres un asistente local para encontrar lugares en Málaga, España.
