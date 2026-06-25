@@ -13,7 +13,6 @@ services:
       - .env  # <-- Añade esto aquí obligatoriamente
     environment:
       - PORT=3000
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
       - MODEL=${MODEL:-claude-sonnet-4-6}
     restart: unless-stopped
